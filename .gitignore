@@ -1,0 +1,10 @@
+# Copyright The Linux Foundation
+# SPDX-License-Identifier: Apache-2.0
+__pycache__
+*.pyc
+*.egg-info/*
+.DS_Store
+kernels/*
+scratch/*
+.vscode/*
+runtest.py
