@@ -59,11 +59,39 @@ def buildSkipTable(results):
             tally[sd.skipReason] += 1
     return tally, total
 
+def getTopLevelDir(filePath, topDirPrefix):
+    # strip out prefix dirs to get to top level
+    p = filePath.partition(topDirPrefix)
+    pathParts = p[2].split("/")
+    if pathParts[0] == "":
+        pathParts.pop(0)
+    if len(pathParts) == 1:
+        return "/"
+    else:
+        return pathParts[0]
+
+def buildTopLevelDirsTable(results, topDirPrefix):
+    tallyWithLicense = defaultdict(int)
+    tallySkipped = defaultdict(int)
+    tallyTotal = defaultdict(int)
+    for _, sd in results.items():
+        topLevelDir = getTopLevelDir(sd.filename, topDirPrefix)
+        if topLevelDir != "/":
+            topLevelDir = "/" + topLevelDir
+        tallyTotal[topLevelDir] += 1
+        if sd.license == None:
+            continue
+        elif sd.license == "SKIPPED":
+            tallySkipped[topLevelDir] += 1
+        else:
+            tallyWithLicense[topLevelDir] += 1
+    return tallyWithLicense, tallySkipped, tallyTotal
+
 def addTotalRows(tableRows, total):
     tableRows.append(["========================", "======"])
     tableRows.append(["TOTAL", total])
 
-def printResults(results):
+def printResults(results, topDir):
     fmt = "presto"
 
     # print overall results
@@ -100,4 +128,17 @@ def printResults(results):
     print("")
     addTotalRows(linenoTableRows, total)
     print(tabulate(linenoTableRows, headers=linenoTableHeaders, tablefmt=fmt))
+
+    # print overall findings by directory
+    tallyWithLicense, tallySkipped, tallyTotal = buildTopLevelDirsTable(results, topDir)
+    dirs = sorted(tallyTotal.keys())
+    print("\nLicenses by top-level directory:\n")
+    for d in dirs:
+        # don't print LICENSES directory
+        if d == "/LICENSES":
+            continue
+        suffix = ""
+        if tallySkipped[d] > 0:
+            suffix = f"({tallySkipped[d]} skipped)"
+        print(f"{d:15} => {tallyWithLicense[d]:6} found / {tallyTotal[d]:6} total {suffix}")
 
